@@ -1,31 +1,40 @@
 #include <Servo.h>
 
-//вводим константы
-const  float L1 =18;
-const  float L2 =16;
-//л1 и л2 это длина руки манипулятора
-const  float Ya =20; 
-const float hs =0;  //высота подставки под манипулятор
-const float Zc1 =0;  //растояние до стенки от хваталки
-const float Zc2 =0;  //длина от одного сервака до другого у руки
-//это расстояние от точки опоры до стенда
-float Xa=15;
-float Za=17;
-//это углы альфа, бета, гамма, дельта, тета
-float A=0; 
-float B=0;
-float V=0;
-float D=0;
-float T=0;
 
+//вводим константы
+const  float L1 =95;
+const  float L2 =95;
+//л1 и л2 это длина руки манипулятора
+const  float Ya =230; 
+const float hs =55;  //высота подставки под манипулятор
+const float Zc2 =82;  //длина от одного сервака до другого у руки
+float Zc1 =37;  //растояние до стенки от хваталки
+float Zcl=37;  //переменная для выкрутки, равная Zc1
+//это углы альфа, бета, гамма, дельта, тета
+float A=90; 
+float B=0;
+float V=90;
+float D=90;
+float T=90;
+const float k=0.79;// начальный фактический угол в радианах(45 градусов)
 float r=0;  //гипотенуза манипулятора
-//серво объявляем
-Servo s_x;
-Servo s_y;
-Servo s_z;
-Servo s_Zc1;
-Servo s_Zc2;
-  
+int array[5]={0,0,0,0,0};
+
+struct servo
+{
+  int offset;
+  Servo s;
+};
+
+  //серво объявляем
+servo s_x;
+servo s_y;
+servo s_z;
+servo s_Zc1;
+servo s_Zc2;
+
+
+
 //структура (коорды по х и з)
 //тут мы ее объявляем
 struct Place
@@ -34,7 +43,7 @@ struct Place
   float Za; //координата з
 };
 //объявление каждого болтика
-Place odin;
+/*Place odin;
 Place dva;
 Place tri;
 Place chetyre;
@@ -49,103 +58,173 @@ Place dvenadcat;
 Place trinadcat;
 Place chetyrnadcat;
 Place pyatnadcat;
-Place shestnadcat;
+Place shestnadcat;*/
+
+void home(){
+  s_x.s.write(s_x.offset);
+  s_y.s.write(s_y.offset);//вниз
+  s_z.s.write(s_z.offset);//больше 90 вниз
+  s_Zc1.s.write(s_Zc1.offset); //больше 90 вниз
+  s_Zc2.s.write(s_Zc2.offset); //меньше 90 влево
+}
 
 void setup()
 {
-  
-  s_x.attach(5);
-  s_y.attach(7);
-  s_z.attach(6);
-  s_Zc1.attach(4);
-  s_Zc2.attach(3);
-  pinMode(5, OUTPUT);
-  pinMode(6, OUTPUT);
-  pinMode(7, OUTPUT);
+  s_x.offset=90;
+  s_y.offset=39;
+  s_z.offset=90;
+  s_Zc1.offset=90;
+  s_Zc2.offset=90;
+  s_x.s.attach(14);
+  s_y.s.attach(15);
+  s_z.s.attach(16);
+  s_Zc1.s.attach(17);
+  s_Zc2.s.attach(18);
+  pinMode(14, OUTPUT);
+  pinMode(15, OUTPUT);
+  pinMode(16, OUTPUT);
+  pinMode(17, OUTPUT);
+  pinMode(18, OUTPUT);
+  pinMode(20, OUTPUT);
   Serial.begin(9600);
-//а вот теперь задаем координаты для каждого болтика  
-
-  odin.Xa = 60.1;
-  odin.Za = 135.1;
-  
-  dva.Xa = odin.Xa;
-  dva.Za = 14.9;
-
-  tri.Xa = -dva.Xa;
-  tri.Za = dva.Za;
-
-  chetyre.Xa = -odin.Xa;
-  chetyre.Za = odin.Za;
-
-  pyat.Xa = 0;
-  pyat.Za = 132;
-
-  shest.Xa = 40.3;
-  shest.Za = 115.3;
-
-  sem.Xa = 57;
-  sem.Za = 75;
-
-  vosem.Xa = shest.Xa;
-  vosem.Za = 34.7;
-
-  devyat.Xa = 0;
-  devyat.Za = 18;
-
-  desyat.Xa = -vosem.Xa;
-  desyat.Za = vosem.Za;
-
-  odinnadcat.Xa = -sem.Xa;
-  odinnadcat.Za = sem.Za;
-
-  dvenadcat.Xa = -shest.Xa ;
-  dvenadcat.Za = shest.Za;
-
-  trinadcat.Xa = 0;
-  trinadcat.Za = 100;
-
-  chetyrnadcat.Xa = 25;
-  chetyrnadcat.Za = sem.Za;
-
-  pyatnadcat.Xa = 0;
-  pyatnadcat.Za = 50;
-
-  shestnadcat.Xa = -chetyrnadcat.Xa;
-  shestnadcat.Za = sem.Za;
-  //массив штоб к ним обращаться 
+  digitalWrite(20, LOW);
+  home();
+  Serial.println(s_x.offset);
 }
+
+void execute(const servo& serv, float difference)
+{
+          if (difference<0){
+              for (int i = serv.s.read(); i<=serv.offset-raznitza; i++)
+              {
+                serv.s.write(i);
+                delay(50);
+              }
+            }
+          else {
+            for (int i = serv.s.read(); i>=serv.offset-raznitza; i--)
+            {
+              serv.s.write(i);
+              delay(50);
+            }
+          }    
+}
+
+void doItAction(const servo& servo, float targetRad)
+{
+  Serial.println(raznitza);
+  switch(servo){
+    case(s_x):
+        {
+          int targetDeg=round(degrees(targetRad));
+          int raznitza=s_x.offset-targetDeg;
+          execute(s_x,raznitza); 
+          break;
+        }
+    case(s_y):
+      {
+        int targetDeg=round(degrees(targetRad));
+        int raznitza=s_y.offset-targetDeg;
+        execute(s_y,raznitza); 
+        break;
+      }
+    case(s_z):
+      {
+        int targetDeg=round(degrees(targetRad));
+        int raznitza=s_z.offset-targetDeg;
+        execute(s_z,raznitza); 
+        break;
+      }
+    case(s_Zc1):
+      {
+        int targetDeg=round(degrees(targetRad));
+        int raznitza=s_Zc1.offset-targetDeg;
+        execute(s_Zc1,raznitza); 
+       break;
+      }
+    case(s_Zc2):
+      {
+        int targetDeg=round(degrees(targetRad));
+        int raznitza=s_Zc2.offset-targetDeg;
+        execute(s_Zc2,raznitza); 
+       break;
+      }
+  }
+  /*if (raznitza<0){
+    for (int i = chet; i<=chet-raznitza; i++)
+    {
+      servo.s.write(i);
+      delay(50);
+    }
+  }
+  else {
+    for (int i = chet; i>=chet+raznitza; i--)
+    {
+      servo.s.write(i);
+      delay(50);
+    }
+  }*/
+}
+
+/*void doItAction(const Servo& servo, float targetRad)//функция для поворота с 90 градусов
+{
+  int targetDeg = round(degrees(targetRad));
+    Serial.println(targetDeg);
+  if (targetDeg>0 && -45<targetDeg)
+    for (int i = 90; i < -targetDeg+90; i++)
+    {
+      servo.write(i);
+      delay(50);
+    }
+  else
+    for (int i = 90; i > targetDeg+90; i--)
+    {
+      servo.write(i);
+      delay(50);
+    } 
+}
+
+void doAction(const Servo& servo, float targetRad)//функция для поворота с минимальным углом 45градусов
+{
+  int angle = servo.read();
+  int targetDeg = round(degrees(targetRad));
+  Serial.println(targetDeg);
+  if (angle < targetDeg)
+    for (int i = angle; i < targetDeg; i++)
+    {
+      servo.write(i);
+      delay(50);
+    }
+  else
+    for (int i = angle; i > targetDeg; i--)
+    {
+      servo.write(i);
+      delay(50);
+    } 
+}*/
 
 void action(float x, float z) //начинаем цикл, при этом вводим координаты по х и з
 {
 
-  float g=0; 
-  //гипотенуза
+  float g=0; //гипотенуза
+  float W=0;
   float PRZc2=0;  //проекция Zc2
   float c3=0;  //расстояние до Zc2
   float PRr=0;  //проекция r
-  float  Y2=sqrt(x*x+Ya*Ya); 
-  //расстояние от манипулятора до координаты по х
-  V=asin(x/Y2);
-  //угол поворота относительно оси з
-  g=sqrt(z*z+Ya*Ya); 
-  //расстояние от опоры манипулятора до координаты по з
-  B=acos((L1*L1+g*g-L2*L2)/(2*L1*g)); 
-  //угол наклона л1
-  A=acos((L2*L2+g*g-L1*L1)/(2*L2*g)); 
-  //угол наклона л2
+  
   V=atan(x/(20-Zc1)); //находим угол поворота относительно з
   PRZc2=Zc2*cos(V); //находим проекцию Zc2
   c3=20-PRZc2-Zc1;  //считаем растояние по оси Y до пересечения с высотой от точки соединения L2 и Zc2 
   PRr=sqrt(c3*c3+(x-Zc2*sin(V))*(x-Zc2*sin(V)));  //находим проекцию гипотенузы
   r=sqrt(PRr*PRr+(z-hs)*(z-hs));  //находим гипотенузу
-  A=acos((L1*L1+r*r-L2*L2)/(2*L1*r));  //угол наклона L1
-  B=acos((L2*L2+r*r-L1*L1)/(2*L2*r));  //угол наклона L2
+  A=acos((L1*L1+r*r-L2*L2)/(2*L1*r))+k;  //угол наклона L1
+  B=acos((L2*L2+r*r-L1*L1)/(2*L2*r))+k;  //угол наклона L2
   T=acos((L2*L2+r*r-L1*L1)/(2*L2*r));  //угол наклона r
-  D=270-(acos((z-hs)/r)+T); //находим угол поворота вправо или влево PRZc2
+  D=3.14-(acos((z-hs)/r)+T); //находим угол поворота вправо или влево PRZc2
+  W=atan((z-hs)/c3);
+  A=1,57-A-W+0,68;
 }
-Place boltArray[] = {odin,dva, tri, chetyre, pyat, shest, sem, vosem,
-                   devyat, desyat, odinnadcat, dvenadcat, trinadcat, 
-                   chetyrnadcat, pyatnadcat, shestnadcat};
+Place boltArray[] = {60.1, 170.1, 60.1, 49.9, -60.1, 49.9, -60.1, 170.1, 0, 167, 40.3, 150.3, 57, 110, 40.3, 69.7, 0, 53, -40.3, 69.7, -57, 110, -40.3, 150.3, 0, 135, 25, 110, 0, 85, -25, 110}; //массив штоб к ним обращаться 
 
 Place getBolt(int nam)//это функция для получения названия болта
 {
@@ -153,27 +232,65 @@ Place getBolt(int nam)//это функция для получения назв
   return bolt;
 }
 
+bool start = true;
+int input;
+enum det {checkSerial = 0, checkArray, doActions};
+byte determinant =  checkSerial;
 
+int len = 0;
 void loop()
 {
-  //обнуляем серво
-  s_x.write(0);
-  s_y.write(0);
-  s_z.write(0);
-  s_Zc1.write(0);
-  s_Zc2.write(0);
-   
-  if (Serial.available()){
-    int input = Serial.parseInt();
-    if (input>0&&input<17){
+  if ((determinant == checkSerial)&&(Serial.available()))
+  {
+    char c = Serial.read();
+    if (c == 'k') determinant = checkArray;
+  }
+
+  if (determinant == checkArray)
+  {
+    if (Serial.available())
+      for(int index = 0; index < 5; index++)
+      {
+        int znach=Serial.parseInt();              
+        if (!(znach< 1 || znach>16))
+        {
+          array[index]=znach; 
+          Serial.print(array[index]);  
+          len++;       
+        }
+      } 
+      if (len > 0) determinant = doActions;
+  }
+      
+  if (determinant == doActions)
+    {
+      for(int pov=0;pov<=len;pov++){
+      input = array[pov];
+      
       Place bolt = getBolt(input);
-      //непосредственно крутим
-      action(bolt.Xa, bolt.Za);
-      s_x.write(V);
-      s_y.write(A);
-      s_z.write(B);
-      s_Zc1.write(T);
-      s_Zc2.write(D);
+      Zc1=6.4;
+      action(bolt.Xa, bolt.Za);  //непосредственно крутим
+      DoItAction(s_Zc2,T);
+      DoItAction(s_Zc1,D);
+      DoItAction(s_z,B);
+      DoItAction(s_y,A);
+      DoItAction(s_x,V);
+      digitalWrite(20, HIGH);
+      
+      for(int vykrbolt=Zc1; vykrbolt<Zcl+40; vykrbolt+=10){
+        Zc1=vykrbolt;
+        Place bolt = getBolt(input);
+        action(bolt.Xa, bolt.Za);
+        
+        DoItAction(s_Zc2,T);
+        DoItAction(s_Zc1,D);
+        DoItAction(s_z,B);
+        DoItAction(s_x,V);
+        DoItAction(s_y,A);
+      }
+      Zc1=37;
+      digitalWrite(20, LOW);
+     }
     }
-  } 
+  Serial.println(determinant);
 }
