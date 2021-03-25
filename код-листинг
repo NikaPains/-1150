@@ -1,15 +1,15 @@
 #include <Servo.h>
-
+#include <math.h>
 
 //вводим константы
-const  float L1 =95;
-const  float L2 =95;
+const  float L =82;
+const  float L2 =82;
 //л1 и л2 это длина руки манипулятора
 const  float Ya =230; 
 const float hs =55;  //высота подставки под манипулятор
 const float Zc2 =82;  //длина от одного сервака до другого у руки
-float Zc1 =37;  //растояние до стенки от хваталки
-float Zcl=37;  //переменная для выкрутки, равная Zc1
+float Zc1 =68;  //растояние до стенки от хваталки
+float Zcl=230;  //переменная для выкрутки, равная Zc1
 //это углы альфа, бета, гамма, дельта, тета
 float A=90; 
 float B=0;
@@ -23,6 +23,7 @@ int array[5]={0,0,0,0,0};
 struct servo
 {
   int offset;
+  int num;
   Servo s;
 };
 
@@ -70,11 +71,16 @@ void home(){
 
 void setup()
 {
-  s_x.offset=90;
+  s_x.offset=90; 
   s_y.offset=39;
-  s_z.offset=90;
-  s_Zc1.offset=90;
-  s_Zc2.offset=90;
+  s_z.offset=90; 
+  s_Zc1.offset=90; 
+  s_Zc2.offset=90; 
+  s_x.num=1;
+  s_y.num=2;
+  s_z.num=3;
+  s_Zc1.num=4;
+  s_Zc2.num=5;
   s_x.s.attach(14);
   s_y.s.attach(15);
   s_z.s.attach(16);
@@ -87,22 +93,24 @@ void setup()
   pinMode(18, OUTPUT);
   pinMode(20, OUTPUT);
   Serial.begin(9600);
-  digitalWrite(20, LOW);
+  digitalWrite(20, HIGH);
   home();
   Serial.println(s_x.offset);
 }
 
 void execute(const servo& serv, float difference)
 {
+          int znach=serv.s.read();
+          Serial.println(difference);
           if (difference<0){
-              for (int i = serv.s.read(); i<=serv.offset-raznitza; i++)
+              for (int i = znach; i>=znach-difference; i++)
               {
                 serv.s.write(i);
-                delay(50);
-              }
+                delay(10);
+              } 
             }
           else {
-            for (int i = serv.s.read(); i>=serv.offset-raznitza; i--)
+            for (int i = znach; i>=znach+difference; i--)
             {
               serv.s.write(i);
               delay(50);
@@ -110,119 +118,105 @@ void execute(const servo& serv, float difference)
           }    
 }
 
+void exeCUTE(const servo& serv, float difference)
+{
+          int znach=serv.s.read();
+          if (difference>90){
+              for (int i = znach; i<=difference+90; i++)
+              {
+                serv.s.write(i);
+                delay(50);
+              }
+            }
+          else if (difference<90) {
+            for (int i = znach; i>=90-difference; i--)
+            {
+              serv.s.write(i);
+              delay(50);
+            }
+          }
+          else{
+            asm("RET");
+          }  
+}
+
 void doItAction(const servo& servo, float targetRad)
 {
-  Serial.println(raznitza);
-  switch(servo){
-    case(s_x):
+  switch(servo.num){
+    case(1):
         {
           int targetDeg=round(degrees(targetRad));
-          int raznitza=s_x.offset-targetDeg;
+          Serial.println(targetDeg);
+          int raznitza=servo.s.read()-targetDeg;
           execute(s_x,raznitza); 
           break;
         }
-    case(s_y):
+    case(2):
       {
         int targetDeg=round(degrees(targetRad));
-        int raznitza=s_y.offset-targetDeg;
+        Serial.println(targetDeg);
+        int raznitza=90-targetDeg;
         execute(s_y,raznitza); 
         break;
       }
-    case(s_z):
+    case(3):
       {
         int targetDeg=round(degrees(targetRad));
-        int raznitza=s_z.offset-targetDeg;
-        execute(s_z,raznitza); 
+        Serial.println(targetDeg);
+        int raznitza=servo.s.read()-targetDeg;
+        exeCUTE(s_z,raznitza); 
         break;
       }
-    case(s_Zc1):
+    case(4):
       {
         int targetDeg=round(degrees(targetRad));
-        int raznitza=s_Zc1.offset-targetDeg;
-        execute(s_Zc1,raznitza); 
+        Serial.println(targetDeg);
+        int raznitza=180-targetDeg;
+        exeCUTE(s_Zc1,raznitza); 
        break;
       }
-    case(s_Zc2):
+    case(5):
       {
         int targetDeg=round(degrees(targetRad));
-        int raznitza=s_Zc2.offset-targetDeg;
+        Serial.println(targetDeg);
+        int raznitza=servo.s.read()-targetDeg;
         execute(s_Zc2,raznitza); 
        break;
       }
   }
-  /*if (raznitza<0){
-    for (int i = chet; i<=chet-raznitza; i++)
-    {
-      servo.s.write(i);
-      delay(50);
-    }
-  }
-  else {
-    for (int i = chet; i>=chet+raznitza; i--)
-    {
-      servo.s.write(i);
-      delay(50);
-    }
-  }*/
 }
 
-/*void doItAction(const Servo& servo, float targetRad)//функция для поворота с 90 градусов
-{
-  int targetDeg = round(degrees(targetRad));
-    Serial.println(targetDeg);
-  if (targetDeg>0 && -45<targetDeg)
-    for (int i = 90; i < -targetDeg+90; i++)
-    {
-      servo.write(i);
-      delay(50);
-    }
-  else
-    for (int i = 90; i > targetDeg+90; i--)
-    {
-      servo.write(i);
-      delay(50);
-    } 
-}
-
-void doAction(const Servo& servo, float targetRad)//функция для поворота с минимальным углом 45градусов
-{
-  int angle = servo.read();
-  int targetDeg = round(degrees(targetRad));
-  Serial.println(targetDeg);
-  if (angle < targetDeg)
-    for (int i = angle; i < targetDeg; i++)
-    {
-      servo.write(i);
-      delay(50);
-    }
-  else
-    for (int i = angle; i > targetDeg; i--)
-    {
-      servo.write(i);
-      delay(50);
-    } 
-}*/
 
 void action(float x, float z) //начинаем цикл, при этом вводим координаты по х и з
 {
 
-  float g=0; //гипотенуза
+  float cA=0;
+  float cB=0;
+  float cC=0;
   float W=0;
   float PRZc2=0;  //проекция Zc2
   float c3=0;  //расстояние до Zc2
-  float PRr=0;  //проекция r
-  
-  V=atan(x/(20-Zc1)); //находим угол поворота относительно з
-  PRZc2=Zc2*cos(V); //находим проекцию Zc2
-  c3=20-PRZc2-Zc1;  //считаем растояние по оси Y до пересечения с высотой от точки соединения L2 и Zc2 
-  PRr=sqrt(c3*c3+(x-Zc2*sin(V))*(x-Zc2*sin(V)));  //находим проекцию гипотенузы
-  r=sqrt(PRr*PRr+(z-hs)*(z-hs));  //находим гипотенузу
-  A=acos((L1*L1+r*r-L2*L2)/(2*L1*r))+k;  //угол наклона L1
-  B=acos((L2*L2+r*r-L1*L1)/(2*L2*r))+k;  //угол наклона L2
-  T=acos((L2*L2+r*r-L1*L1)/(2*L2*r));  //угол наклона r
-  D=3.14-(acos((z-hs)/r)+T); //находим угол поворота вправо или влево PRZc2
+  V=atan(x/(Ya-Zc1));
+  cA=Ya-Zc1;
+  cB=sqrt(cA*cA+x*x)-L;
+  cC=sqrt(cA*cA+x*x);
+  c3=cA*cB/cC;
   W=atan((z-hs)/c3);
-  A=1,57-A-W+0,68;
+  B=acos((c3*c3+(z-hs)*(z-hs)-2*L*L)/(2*L*L));
+  A=(3.14-B)/2;
+  D=A-W;
+  
+  Serial.print("\nTest: ");
+  Serial.println(V);
+  Serial.println(cA);
+  Serial.println(cB);
+  Serial.println(cC);
+  Serial.println(c3);
+  Serial.println(W);
+  Serial.println(B);
+  Serial.println(A);
+  Serial.println(D);
+  
 }
 Place boltArray[] = {60.1, 170.1, 60.1, 49.9, -60.1, 49.9, -60.1, 170.1, 0, 167, 40.3, 150.3, 57, 110, 40.3, 69.7, 0, 53, -40.3, 69.7, -57, 110, -40.3, 150.3, 0, 135, 25, 110, 0, 85, -25, 110}; //массив штоб к ним обращаться 
 
@@ -265,16 +259,16 @@ void loop()
   if (determinant == doActions)
     {
       for(int pov=0;pov<=len;pov++){
+        
       input = array[pov];
       
       Place bolt = getBolt(input);
-      Zc1=6.4;
       action(bolt.Xa, bolt.Za);  //непосредственно крутим
-      DoItAction(s_Zc2,T);
-      DoItAction(s_Zc1,D);
-      DoItAction(s_z,B);
-      DoItAction(s_y,A);
-      DoItAction(s_x,V);
+      doItAction(s_Zc2,V);
+      doItAction(s_Zc1,D);
+      doItAction(s_z,B);
+      doItAction(s_y,A);
+      doItAction(s_x,V);
       digitalWrite(20, HIGH);
       
       for(int vykrbolt=Zc1; vykrbolt<Zcl+40; vykrbolt+=10){
@@ -282,11 +276,11 @@ void loop()
         Place bolt = getBolt(input);
         action(bolt.Xa, bolt.Za);
         
-        DoItAction(s_Zc2,T);
-        DoItAction(s_Zc1,D);
-        DoItAction(s_z,B);
-        DoItAction(s_x,V);
-        DoItAction(s_y,A);
+        doItAction(s_Zc2,V);
+        doItAction(s_Zc1,D);
+        doItAction(s_z,B);
+        doItAction(s_x,V);
+        doItAction(s_y,A);
       }
       Zc1=37;
       digitalWrite(20, LOW);
